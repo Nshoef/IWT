@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <style type="text/css">
+        h1 { text-align: center; color: darkgreen;}
+        p { text-align: center; color: darkgreen}
+        #d { font-size: 10px; }
+        #l { font-size: 20px; text-decoration: underline; text-align: left; font-weight: bold; color: black;}
+        label {font-size: 16px; font-weight: bold;}
+    </style>
+    <meta charset="UTF-8">
+    <title>Wimbledon result page</title>
+    <script type="text/javascript">
+
+    /**
+    * main method
+    */
+    function viewResult() {
+        var xml = loadXMLDoc(document.getElementById("w").checked? "wimbledon-women-2013.xml" : "wimbledon-men-2013.xml");
+        var xsl = loadXMLDoc("wimbledon.xsl");
+        xsl = filterPlayer(xsl, xml);
+        xsl = filterSets(xsl);
+        xsl = filterRound(xsl);
+        xsl = applyOrder(xsl);
+        var proc = new XSLTProcessor();
+        proc.importStylesheet(xsl);
+        var resultFragment = proc.transformToFragment(xml, document);
+        document.getElementById("x").appendChild(resultFragment);
+    }
+
+    /**
+    * This method upload an xml file
+    */
+    function loadXMLDoc(filename){
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", filename, false);
+        xhr.send(null);
+        return xhr.responseXML;
+    }
+
+    /**
+    * This method filter the player conditions according to the user input
+    */
+    function filterPlayer(xsl, xml) {
+        var input = document.getElementById("p").value;
+        if(document.getElementById("p2").checked) {
+            var names = xml.getElementsByTagName("name");
+            for(i=0; i< names.length; i++) {
+                var name = names[i].firstChild.nodeValue;
+                var nLow = name.toLowerCase();
+                var iLow = input.toLowerCase();
+                if(nLow.indexOf(iLow) != -1) {
+                    input = name;
+                }
+             }
+         }
+         var newSet = "match[player/name='" +input+ "']";
+         var tag = xsl.getElementsByTagName("xsl:for-each").length === 0? "for-each" : "xsl:for-each";
+         xsl.getElementsByTagName(tag)[0].setAttribute("select", newSet);    
+         return xsl;
+    }
+
+    /**
+    * This method filter the sets conditions according to the user input
+    */
+    function filterSets(xsl) {
+        var input = document.getElementById("s").value;
+        var th = xsl.getElementsByTagName("th");
+        var tag = xsl.getElementsByTagName("xsl:for-each").length === 0? "for-each" : "xsl:for-each";
+        if(document.getElementById("s1").checked) {
+            var temp = "set[position() > "+input+"]";
+            xsl.getElementsByTagName(tag)[2].setAttribute("select", temp);
+            for(j=th.length-1; j>=2; j--) {
+                if(j-2 < input) {
+                    th[j].parentNode.removeChild(th[j]);
+                }
+            }
+        } else if (document.getElementById("s3").checked) {
+            var temp = "set[position() < " + input + "]";
+            xsl.getElementsByTagName(tag)[2].setAttribute("select", temp);
+            for(j=th.length-1; j>=2; j--) {
+                if(j > input) {
+                    th[j].parentNode.removeChild(th[j]);
+                }
+            }
+        } else {
+            var temp = "set[position() = "+input+"]";
+            xsl.getElementsByTagName(tag)[2].setAttribute("select", temp);
+            for(j=th.length-1; j>=2; j--) {
+                if(j-1 != input) {
+                    th[j].parentNode.removeChild(th[j]);
+                }
+            }
+        }
+        return xsl;
+    }
+
+    /**
+    * This method filter the rounds conditions according to the user input
+    */
+    function filterRound(xsl) {
+        var input = document.getElementById("r").value;
+        var tag = xsl.getElementsByTagName("xsl:for-each").length === 0? "for-each" : "xsl:for-each";
+        if(document.getElementById("r1").checked) {
+            xsl.getElementsByTagName(tag)[0].setAttribute("select", "match[round>"+input+"]");
+        } else if (document.getElementById("r3").checked) {
+            xsl.getElementsByTagName(tag)[0].setAttribute("select", "match[round<"+input+"]");
+        } else {
+            xsl.getElementsByTagName(tag)[0].setAttribute("select", "match[round="+input+"]");
+        }
+        return xsl;
+    }
+
+    /**
+    * This method sort the rounds output according to the user input
+    */
+    function applyOrder(xsl) {
+        if (document.getElementById("o2").checked) {
+            if(xsl.getElementsByTagName("sort").length === 0) {
+               xsl.getElementsByTagName("xsl:sort")[0].setAttribute("order", "descending");
+            } else {
+                xsl.getElementsByTagName("sort")[0].setAttribute("order", "descending");
+            }
+        }
+        return xsl;
+    }
+
+    </script>
+</head>
+<body>
+    <h1 >Wimbledon Tennis Tournament</h1>
+    <p >This page shows the results of wimbledon tennis tournament.<br/>You can filter the result by using the boxes below.<br/>Click ok to view.</p>
+      <div id="f">
+        <p id="l">Apply filters: </p>
+        <form>
+            <label>Choose Men/Women:</label>
+            <input type="radio" id ="m" name="sex" checked>Tick to see result for men
+            <input type="radio" id ="w" name="sex">Tick to see result for women<br/><br>
+            <label>Choose a player: </label><input id="p" type="text">
+            <input type="radio" id ="p1" name="player" checked>Search by the exact name
+            <input type="radio" id ="p2" name="player">Search by part of the name<br/><br/>
+            <label>Choose a set: </label><input type="number" min="0" max="5" id="s" value="0">
+            <input type="radio" id ="s1" name="set" checked>Greater than
+            <input type="radio" id ="s2" name="set" >Equals to
+            <input type="radio" id ="s3" name="set">Smaller than<br/><br/>
+            <label>Choose a round: </label><input id="r" type="number" min="0" max="7" value="0">
+            <input type="radio" id ="r1" name="round" checked>Greater than
+            <input type="radio" id ="r2" name="round">Equals to
+            <input type="radio" id ="r3" name="round">Smaller than<br/><br/>
+            <label>Show result by: </label>
+            <input type="radio" id ="o1" name="order" checked>Ascending order<input type="radio" id ="o2" name="order">Descending order<br/>
+            <input type="button" value="OK" onClick= "viewResult()">
+            <INPUT type="button" value="New search" name="button2" onClick="self.location = 'wimbledon.html'; return true">
+        </form>
+      </div>
+    <div id = "x">
+    </div>
+</body>
+</html>
